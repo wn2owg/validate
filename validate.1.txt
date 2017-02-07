@@ -1,0 +1,106 @@
+This file contains some high level descriptions that may be useful to those that may want
+to enhance the validate tool.
+
+All testing has been with java 1.6 and 1.7, in both linux and Windows (not that thats supposed to matter) - absolutely needs at least java 1.5.
+
+Their are many comments in the code, as well as some preamble text in source files.
+
+For users executing the tool, there are a few options that write useful data to stdout. For example a dump of Java supported regexes so you don't have to use a book
+or javadc, a full list of options that that may be specified in the OPTIONS block, etc.
+
+
+FILES
+ 
+MACROS.txt - a "starting" point for some macros that a project might want. This is an optional runtime file.
+Its purpose is to give the tool user a simple and less error prone way reuse previously developed and tested regular expressions, in the same way
+that a variable is used to insert a value into code. The macros get used in the RULE block of a configuration file (more on this late).
+
+validate.1 manpage for use in linux(unix). Since this provides a lot of detail about the tools use, options, and most importantly the format of a 
+configuration file, it is also included as validate.1.text in cause you are not in a linux environmen
+
+ 
+Validate.class -
+        1- provides all the help messages
+        2- parses and confirms combinations of options
+        3- If more than one user data files.. is used puts the names in a data structure which can be interated over
+        4- if -R is used properly (with -C and or -M) this means the user ONLY wants the behavior where regexes can be developed and tested (see Regex.class).
+		
+        5- if -T is used properly (with -C and or -M) this means the user wants a TIMING test of a regex developed in #4.
+		   No I/O is included or compile time for regex; also the test cases are read from memory instead of a file expecting that to be more like
+		   actual usage would be.
+ 
+Regex.class - once called (by -R or -T) this provides features that enable a developer to test a java compatible regex against one or more test cases. This gives the 
+         developer a simple sandbox with built in diagnostics so he/she can then confidently insert thie regex into the environment which it is intened for
+		 with mininimal addational testing required. The class then and finishes the program. 
+
+        -R  
+        This reads a file with a regex and test cases to match against, one per line. Comments are supported if -C is given. The regex
+        for a comment line (typically ^\s*#|^\s*$). 
+		
+		For each test case it tells if the regex matched and where on the line via column numbers and under lining.	 Also line references to the -R file 
+		are used to help the user.
+ 
+		-T
+		Similar to (-R), however the intent now is to provide runtime timing, so a developer might want to try different alternatives of to match with 
+		quntifiers|qualifiers|lookarounds fo the same pattern in case  they have vey time sensitive code. For example, to match a string of 5 digits, any of 
+		the following regexes may be used: \d\d\d\d\d, \d{5}, \d{5,5}, [0-9]{5}.
+        
+		The match execution time is provided in NANO seconds.
+		
+		Use of the -T testing should only be done after succesful testing with -R becasue to make the _T light weight in terms of time, there is no diagnostic I/O,
+		the test case are read into and then out of memory rather than the file to eliminate file access etc.
+        
+ 
+ParseConfig.clsss - If neither -R or -T was used, then the user want the other (much more significant behavior of the tool).
+
+		This behavior is meant to validate confiuration data (in several formats within a flat ascii file) so that production code will not have to be burdened by
+		runtime perfomance of data checking, logging, and error handling since the executable should never "see" invalid data. (Of course it assumes regexes have
+		been rigourous tested, the validate tool has been used appropriately, and humans havehad the good sense not to corrupt the data after it has been validated.)
+		
+        This desired behavior is signalled by the use of -c configFile.
+        
+		The class can analyse and validate input data in several formats, and the user has control of many options as to what to consider as warnings, or errors;
+		as well how information is displayed for diagnostic purposes (ranging from a cryptic return code status, to verbose details).
+        in various format files.
+ 
+        Some of what this class does is:
+ 
+        1- opens and reads the config file
+        2- keeps track of lineNumber, fileName, blockType for diagnostics
+        3- for blocks (code begun with default %% BlockType and end with %%) makes sure blocks
+           are in the right order (if they exist) OPTIONS, MACROS, RULE. 
+		   
+		   Make sure OPTIONS and MACROS can have 0|1 instance; 
+		   RULE must have at least one instance.
+           REGEX is a sub block of RUL.
+		   
+		   All blocks properly end.
+		   
+        4- Discards (but counts) any line that is NOT within a block (gives a lot of comment flexibility to the config file).
+        5- Creates a default OPTION.class.
+        6- once its in specific blocks (REGEX, MACRO, etc.) passes read lines for the dta file to be verified to other classes so
+           they can be added to necessary data structures.
+ 
+Macros.class - reads and stores the regexes if a macros file was supplied. If an
+         optional MACROS.block is in the config file, then one line at a time is added to the data structure.
+ 
+Options.class - a default class is created with getters and setters for option values; This class is then cloned
+        for every RULE block so that each RULE has its own copy that can be enhanced by local settings. That is each RULE
+		can have different options (local variables) than a previous or following RULE.
+ 
+Rule.class - this class has a section for each format supported (JAVA|NVP|CUSTOM|LINES|FIELDS) dependent on each
+        one it reads and manages the testing of the data line with the regexes appropraite for this format.
+		
+        Eventually this uses the various options to determine what to show the user if a warning or error
+        was encountered. This class is kind of monoithic and has duplicate code thhat could have been organized
+        better if at the start there ahd been a better plan. If in the future other formats were to be added
+        this should probably be reorganized to be more OO.
+ 
+Regex.class - processes the regexes in the REGEX block. Makes sure every regex compilesin part and as a whole depending
+        on format. Stores them in data structures.
+ 
+NVP.class - deal with breaking up name=value and checking if parts were already
+defined, formatted correctly, etc.
+ 
+ 
+       

@@ -1,0 +1,1044 @@
+VALIDATE(1)
+
+
+
+NAME
+       validate	 -  a tool to validate the contents of a file(s) using options
+       and rules based on Java regular expressions.
+
+SYNOPSIS
+       validate -c file [-f file...|-v string]	-id [-m macro file] [-d dirPath] [-t]
+
+       validate -c file [-m macro file]
+
+       validate -c file [-m macro file] -t
+
+       validate -h | -?
+
+       validate -R regexTestFile [-C commentString]
+
+       validate -T regexTestFile [-C commentString]
+
+       validate -M [-m macro file] -c file
+
+
+DESCRIPTION
+       The validate tool has two distinct behaviors, the first requires a con-
+       figuration file, which along with command line options is used to vali-
+       date the contents or various formatted ascii data files using the power
+       of  Java	 regular  expressions.	The second is a tool that can help the
+       user  of	 validate  (developers,	 administrators,  etc.)	 test  regular
+       expressions  against  various  input  strings  to  ensure thier regular
+       expression performs as desired prior to incorporation into  a  validate
+       file, Java code or other tools.
+
+       Validate	 is written to be completely agnostic to any project, service,
+       environment; it does not create nor change any files during  execution;
+       input  files  to	 be validate must be readable, ascii text files, where
+       the input to be validated is on a line by line basis (an	 exception  is
+       the  standard  line  continuation  via  terminating  backslash).	 While
+       project agnostic, there are also many things that are  configurable  or
+       flexible in terms of the formatting and specifying of the required con-
+       figuration if a project has a particular desire for  a  different  look
+       and feel.
+
+       The  validate  tool  can be used at many points in the product develop-
+       ment-delivery process to catch potential data  errors  that  may	 cause
+       undesirable outcome, if they were left undetected until the appropriate
+       utility or application tried to use the data.
+
+       Since not all potential users will have the same degree of comfort with
+       regular expressions, the tool provides some additional help in addition
+       to test utility previously discussed. These range from  simple  display
+       of  syntax,  to	use  of	 macros for reuse of previously tested regular
+       expressions, to formatting and automatic testing of all regular expres-
+       sions used within the tool.
+
+       In  addition  to the two behaviors, the file validation one also has an
+       optional test mode.  The	 test  mode  allows  the  configuration	 file,
+       options, and all the user supplied macros and/or regular expressions to
+       be tested in an environment what does not have the target data  file(s)
+       present.	 Lastly,  as  will  be	seen  below the use of validate can be
+       applied in incremental steps, allowing a project to  benefit  by	 addi-
+       tional  data file integrity file by file and even by loose  validations
+       followed up by more and more stringent ones at a latter time.
+
+OPTIONS
+       The options are supplied in two ways depending on what the options  are
+       used  for.   First, there are standard command line type options in the
+       form of a dash followed by a value and possible additional parameter  -
+       these will be referred to as switches or command line options. A second
+       type of option will be inside the configuration file. These options  in
+       most  cases  have defaults chosen to be reasonable and therefore do not
+       need to be repeated in the file, however depending on the  users	 needs
+       they  may appear in an OPTION block (more on blocks below), or within a
+       RULE block. These later options	will  be  covered  in  the  respective
+       descriptions for their block type.
+
+       The command line options and their effects are as follows:
+
+       -h|-?   help, list of all command lines as shown in this section.
+
+       -c      configuration  file switch. Validate requires one configuration
+	       file to specify the regular expressions that will  be  used  to
+	       confirm data. (See File Formats)
+
+       -d      specifies  the  directory  path	that  can be prepended to file
+	       names given by the -f  file(s) switch and/or file names	speci-
+	       fied in the RULES block.
+
+	       E.g.    -d    /home    -f    file1,file2	   instead    of    -f
+	       /home/file1,/home/file2
+
+       -i      specifies the id of the RULE block to use with  the  validation
+	       of  command line -f file(s). Any rule block within the configu-
+	       ration file maybe used with a -f file. If the -i id  is	given,
+	       no  other  RULE block is used, And the files= value in the RULE
+	       block is ignored.
+
+       -f      the file switch specifies the file(s) to be validated as	 given
+	       from the command line. If there are multiples files to be vali-
+	       dated by the given RULE block, the files must  be  comma	 sepa-
+	       rated.  If  the -f switch is not used, then every RULE block in
+	       the configuration file is executed and  applied	to  the	 files
+	       specified with that block.
+
+       -m      takes  a	 file name as an argument. The file name is to contain
+	       macros (see MACROS) in addition to the optional	MACROS	block.
+	       Macros can help document regular expressions if names are mean-
+	       ingful; they save complex regular expression typing  and	 mini-
+	       mize user error.
+
+       -p <arg>
+	       The print switch has several choices as arguments.
+
+	      macros:  prints  the  format  of	a  macros file and/or a MACROS
+	      block, with a brief summary of formatting requirements.  
+		  
+		  configFile:  prints  the  abbreviated format of the configuration file
+	      (see CONFIGURATION FILE).
+
+	      regex: prints the data from the Java API for the Pattern	class,
+	      this  defines  the  supported regular expressions (in many cases
+	      features are beyond what would be used in validate).
+
+       -m      specifies the name of the optional macros file.
+
+       -t      the test flag indicates that  all  command  line	 and  internal
+	       options, as well and format of the configuration file and regu-
+	       lar expressions should be tested (validated) without  the  need
+	       for any of the data files to be present.
+
+       -v string
+	       allows a string passed on the command line to be the item vali-
+	       dated by the specified RULE block. Ther are 2 choices  for  the
+	       format in the RULE block; ValueLine (or VL) which uses  regegu-
+	       lar expressions like those in the LINES format, or  ValueDelim-
+	       ited (or VD, or VF) which behaves like the format of DELIMITED.
+	       Since there is no "file" of input data the ouput	 summary  data
+	       format is simplifed from all other cases.
+
+       -R      specifies  the file that contains a regular expression to test,
+	       and its test case strings. (see REGEX TEST)
+
+       -T      specifies an alternate mode of -R regexFile, where the goal  is
+	       to see timing impacts of a regular expression. (see REGEX TEST)
+
+       -C <commentRegex>
+	       specifies a regular expression that will indicate a line in the
+	       -R|-T regular expression file is a comment.  A typical value of
+	       "^#" would allow "shell" like full-line comments for  document-
+	       ing in the file or temporarily ignoring a test case.
+
+CONFIGURATION FILE
+       The file validation behavior of the validate tool requires a configura-
+       tion file as specified by the -c <configFile> command switch. A project
+       may  choose  many  approaches  on  how  to use and manage configuration
+       files: one to one relation between a file to validate and its one  rule
+       config file; or every file to validate in one config file; or some log-
+       ical collection of files per config file.
+
+       A number of flexibilities have been  provided  to  give	projects  some
+       options and conveinences but by default nothing needs to be changed.
+
+       Below  is a simple configuration file with all the optional blocks. The
+       file contains two RULE blocks, since the first RULE block does not con-
+       tain  a file= value, this RULE can only be used to validate files given
+       on the command line with both the -f <file...> and -i <id> switches.
+
+
+       The file contains blocks and other text. A block has the following for-
+       mat:
+
+       <block start tag><\s*><block title><\s+block id - only for RULE block>
+       # note: \s* regular expression for ZERO or more white space characters
+       # note: \s+ regular expression for ONE or more white space characters
+       # comments
+       # comment style is configurable
+       # white space as the next line
+
+       <block end tag>
+
+       The  block  start  and end tags are defined as "%%" since these are not
+       special to regular expressions, and not likely used  much  to  start  a
+       data  line. If necessary these can be changed on the command line using
+       the Java syntax like:
+
+       java -blkStart=%# -blkENd=%# validate.Validate ...
+
+       If these are changed, significant review of regular expression notation
+       and  validate features should be done to ensure no conflict is created.
+
+       Any line BEFORE the start of a block or after the end  of  a  block  is
+       ignored.	 Ignored  lines	 can be used for comments of any style, source
+       code control strings, etc. If a line out side of a block has  the  gen-
+       eral  format  of	 a  block start or end, (e.g. %% HELLO) will be inter-
+       preted as a block and cause a fatal error.
+
+       OPTION - must be the first block, but it is optional. Options set in this block are global to all RULE blocks. These options will over ride defaults. In addition these same options can be set in a RULE block to become local to that block.
+
+       MACRO - must be after the OPTION block (if it exists) and before the first RULE block. The layout and format of MACROS will follow.
+
+       RULE - at least one RULE block is required. Every rule block must have an id, where the id is 1584
+
+       REGEX - the regular expression block is the ONLY block within another block, it is at the end of a RULE block. The REGEX block can have its own local end block tag (instead of %%) in case the end block tag would conflict with a regular expression.
+
+       Each of the above four block titles can be given in any case, plural or singular. Every block has a start and end (the REGEX serves to end the RULE and start the REGEX.
+
+       Below is a simple configuration file which demonstrates many of the above features.
+
+       #
+       # lines OUTSIDE blocks are treated as comments and thus ignored
+       // Java like comment
+       /*
+       ** anything
+       */
+       # blanks ok
+
+       %%     oPTiOns
+	    # this block is optional, but must be first
+	    warnRegexUnused=true
+	    #warnRegexUnused=false
+	    warnUncheckedName=true
+       %%
+
+       %%MACRO
+	    # this block is optional but must be after OPTIONS and precede RULES
+       zipCode=\d{5}([ .]?{4})
+       # or better spaces entry follows
+	 gender =male|female
+       %%
+
+       #
+       # Note the following RULE does NOT have a file=, therefore it can ONLY be used
+       # with the command line -f file and -i test_rule100 option switches
+       #
+       %%RULE test_rule100
+	    # comments and blanks ok
+	    format=NameValue
+	    warnRegexUnused=false
+       %%REGEX
+	    # name (or variable) localZip is being validated with the regular expression in a macro
+	    localZip=<zipCode>
+	    areaCode=[1-9][1-9][0-9]
+       %%
+
+       %%RULE second_rule
+       file=/etc/myData
+       format=nv
+       %% REGEX
+       # regular expression CANNOT be indented
+       age=\d{1,3}
+       %%
+
+
+       Some of the above features will be explained in	the  descriptions  for
+       the appropriate block.
+
+OPTION Block
+       The  option block is optional, if it exists it must be the first block.
+       There can only be one option block; The option block may be  titled  in
+       an  case, singular or plural. The title may be whitespace indented from
+       the block start tag.
+
+       Within the block, options are listed one per line. The may be  indented
+       with whitespace. The block allows shell style, full line comments; com-
+       ments can be used for documentation or to comment out option  settings.
+       Blank lines are allowed.
+
+       The  format  of	options	 is  (in regular expression notation): option-
+       Name\s*=optionValue. Note the value  portion  does  not	have  optional
+       whitespace  either  after the equals sign or after the option value. In
+       other words the option value is from the equals until  the  end-of-line
+       (this   will   accommodate   options   which  are  strings  or  regular
+       expressions).
+
+       Option names are case insensitive, but will be shown in the document as
+       well as on screen in mixed case for readability.
+
+       Options	or values that are invalid may have several consequences. If a
+       mistake is catastrophic to validates parsing or running, a fatal	 error
+       will be printed to STDERR and the tool will terminate. Less significant
+       mistakes might issue an error.  A warning will be issued for  something
+       questionable, but in some cases tolerable, but will not exit. There are
+       a number of options that deal with these	 warnings  and	how  they  are
+       treated.	 Options  take	effect	as  soon as they are parsed, therefore
+       options to control option handling should be set first  if  the	intent
+       was to not see messages about the condition found.
+
+       Option names are case insensitive.
+
+       Options	that include the word "warn" can also have warn spelled out as
+       warning.
+
+       If an option is set more than once, the last value is the one  that  is
+       used.
+
+       Some  options  are  Java	 Strings,  these  end in the word String like,
+       macroStartString. Even though the default value might look like a char-
+       acter  -	 this  is  for flexibility if needed. Do not add quotes around
+       strings or regular expressions any values unless quotes are part of the
+       value  (true/false  type	 options can be quoted, as in option="true" or
+       option=t, but no spaces can be inserted past the equals sign.
+
+       Some options are for passing a regular expression to Java, these end in
+       the word Regex like, lineSkipRegex.
+	Even  though  the  default value might look like a character - this is
+       for flexibility if needed. Do not add quotes around the	value	unless
+       the quote is a character to be matched. As with the String options, the
+       value is until the end-of-line (including any  whitespace).  Note  that
+       the  syntax  of	Regex options is that given in the Java API doc (or -p
+       regex) - you do not add extra backslashes as you might see in many text
+       book  examples  where they pass the regular expression via a String). A
+       few options start with the word regular expression, this indicates they
+       apply to the function of the REGEX block - they may or may not be regu-
+       lar expressions themselves (regexEndBlockRegex pertains	to  the	 REGEX
+       block and is a regular expression).
+
+       Any  option that can be set in the OPTION block, can also be set in the
+       RULE block as a local option. There are a few options that can only  be
+       set in a RULE block, those will be indicated below.
+
+       Boolean options can be set with any of the following values.
+       For true: true|t|y|yes|on|1, in any case.
+       For false: false|f|n|no|off|0, in any case.
+       The  following  is  a  description  of options and their default value.
+       (rule) means this option can only appear in the	RULE  block,  not  the
+       OPTION.
+
+       lineCheckRegex
+	       (Default	 null) this regular expression is for all file formats
+	       ( for the java format it checks the property name). The regular
+	       expression  is  used to match each line after the processing of
+	       the lineSkipRegex and after the	linePrefixRegex	 and  lineSuf-
+	       fixRegex	 have been trimmed from the line (if they were set for
+	       a custom file format). It is also applied after skip lines have
+	       been  processed.	 This  option is opposite of the lineSkipRegex
+	       function. (see lineShow)
+
+       linePrefixRegex
+	       (Default null) this regular expression is  only	for  the  file
+	       format  of  custom.  The regular expression is used to trim the
+	       matching prefix off each line. It is also  applied  after  skip
+	       lines have been processed.
+
+       lineSuffixRegex
+	       (Default	 null)	this  regular  expression is only for the file
+	       format of custom. The regular expression is used	 to  trim  the
+	       matching	 suffix	 off  each line. It is also applied after skip
+	       lines have been processed.
+
+       lineReplaceRegex
+	       (Default null) this regular expression is  only	for  the  file
+	       format  of  custom.  The regular expression is used to globally
+	       search an input line for the search string, and replace it with
+	       the  replacemnet	 string.   It is also applied after skip lines
+	       have been processed, but before	line(Prefix|Suffix|Check)Regex
+	       have been processed.
+
+	       The  value  portion  of	this  option has the following format:
+	       <search_regex><delimiter><replacement_regex>. The  delimter  is
+	       specified  by  lineReplaceDelimiterRegex. The delimiter and the
+	       replace_regex are optional if the intent was to make the target
+	       null.  i.e.  using  the defulat delimiter of ':', the following
+	       eliminate the string "hello" from the value:
+
+	       lineReplaceRegex=hello
+	       lineReplaceRegex=hello:
+
+	       The following showing 2 possible data  lines  with  single  and
+	       double  quotes  being simplified for the regexes to do matching
+	       by swallowing those characters:
+
+	       number_of_threads = "120";
+	       part_prefix = 'x';
+
+	       lineReplaceRegex=['";]
+
+       lineReplaceDelimiterRegex
+	       (Default :) option used	to  separate  the  two	parts  of  the
+	       lineReplaceRegex.
+		.TP  8	delimiterRegex	(Default null) this regular expression
+	       defines the delimiter which is used to  separate	 fields	 in  a
+	       file  format  of	 delimited,  or custom. Any regular expression
+	       meta characters must be escaped with a backslash.
+
+       dirPathString
+	       (Default null) this option  is  similar	to  the	 command  line
+	       option  switch  -d,  however  it	 is  only prefixed to the file
+	       option value in the rules file.
+
+	       If a RULE file had:
+	       dirPathString=/export/home/project
+	       file={
+	       file1
+	       file2
+	       }
+
+	       Then the files to be validated by that RULE block are: /export/home/project/file1 and /export/home/project/file2.
+
+       EOLdelimiter
+	       (Default false)
+	       this option applies to file format of delimited (e.g. like /etc/password). If true it means that a final delimiter to end the line is optional.
+
+       errorReportData
+	       (Default e: e=empty, n=numberLine, l=line, a=all)
+	       this option controls what an output line looks line if that line did not match the given regular expression. The default e (for empty) completely suppress the output line; n (for numberLine) prints the line number of the input file that failed to match; l (for line) shows the actual input line; a (for all) shows as follows:
+
+	       #   10: NAME <gender> VALUE <none> does not match regex: male|female
+
+	       where the user expected to find:
+	       gender=male
+	       <or>
+	       gender=female
+	       <but the file had, on line 10>
+	       gender=none
+
+       errorReportSummary
+	       (Default a: a=always, f=failure only)  this  option  determines
+	       when  to	 show  a  summary  line to STDOUT. Value a  means show
+	       where there are failures or not; f (for failure) prints only if
+	       there was at least one regular expression match failure.
+
+       extraFieldC0unt
+	       (Default	 0)  this  option  is  only used in the file format of
+	       delimited. The count will allow for fields that the  user  does
+	       not  need  to  validate.	 For  example  if  there are 4 regular
+	       expressions given, then only the first foure fileds are	tested
+	       -  which	 this  option  a line could have X more fields. If the
+	       number of extra fields is less than or equal to the count, they
+	       will  just  be  silently ignored. If they exceed the count they
+	       will be considered an error. If the count is -1, then regarless
+	       of  the	number of extra fileds they are silently ignored. (See
+	       warnExtraFields).
+
+       fieldErrorUnderline
+	       (Default true) used with the file format of delimited, prints a
+	       second  line  of output for any failed case with the field that
+	       failed marked for easier troubleshooting (see below).
+	       E.g. if line number 3, had 4 fields and errorReportData=a and field 3, and 4 failed to match, the output would be:
+
+	       #    3-3,4
+	       data|xx||out
+
+	       This leaves it to the user to count the fileds and examine them
+	       for analysis.
+
+	       With  this  option  set to true, the output is as follows; note
+	       the '^' preceding the number 3 indicates	 that  that  field  is
+	       zero length AND failed so it could not be shown "underlined" on
+	       the final line ("underlining was	 done  with  '^'  to  indicate
+	       negation (one of the regular expression meanings of '^').
+
+	       #    3-^3,4
+	       data|xx||out
+			^^^
+
+       validLineUnderlining
+	       (Default	 false)	 used  with  the file format of line or lines,
+	       prints a second line of output for any matched line marked  for
+	       easier  troubleshooting	with an "=" underlining the portion of
+	       the line that matched the  specified  regular  expression  (see
+	       below).	 This option only has effect if the showValidData=true
+	       for this RULE block, as well.
+	       #	 4: valid: matched regex <2> on line <50>
+	       This is my test line to match.
+	       =======================
+
+	       Note that the entire line was notunderlined because the	match-
+	       ing  regular expression was only anchored to the start of line.
+
+       fileLineContinuation
+	       (Default false) enables a variable which uses an unescaped last
+	       character  of  '? to be used as line continuation (normally the
+	       tool considers every input line to be stand alone) as in:
+
+	       color=red      white	blue;
+
+	       The regular expression to match this is done as	if  the	 final
+	       backslash and prefixed whitespace were not there, this the reg-
+	       ular expression would be red\swhite\sblue.
+
+       lineShow
+	       (Default false) this option is for  debugging.  The  option  is
+	       tested  after the lineSkipRegex and lineCheckRegex options have
+	       filtered the input data so the user  can	 see  what  lines  are
+	       actually	 being	validated  (checked).  The  option can be used
+	       regradless of the previous names options but in that case  will
+	       echo every input line to STDOUT.
+
+       lineSkipRegex
+	       (Default	 null)	this  option  specifies the regular expression
+	       that allow skipping over (ignore) input lines in a data file. A
+	       comment	example	 would	be  a  shell comment or blank such as:
+	       ^\s*#.*$|^\s*$. For the format of java it skips over the	 prop-
+	       erty.
+
+       macroStartString
+	       (Default	 <)  any macro name in the first non-whitespace column
+	       of the macro file or macro block can be used as	typing	short-
+	       hand  in a subsequent macro's regular expression or any regular
+	       expression in a RULE block; for the tool to identify the	 macro
+	       it  is  surrounded  by a macroStartString and a macroEndString.
+	       The two string cannot be the same. They	should	standout  from
+	       typical	data  in the rest of the regular expressions if possi-
+	       ble. They should avoid being regular expression meta-characters
+	       since  when  finally applied to the target data regular expres-
+	       sion to match they must meet egex compile rules. (see MACROS) P
+
+       macroEndString
+	       (Default >) any macro name in the first non-whitespacecolumn of
+	       the macro file or macro block can be used as  typing  shorthand
+	       in  a  subsequent  macro's  regular  expression	or any regular
+	       expression in a RULE block; for the tool to identify the	 macro
+	       it  is  surrounded  by a macroStartString and a macroEndString.
+	       The two string cannot be the same. They	should	standout  from
+	       typical	data  in the rest of the regular expressions if possi-
+	       ble. They should avoid being regular expression meta-characters
+	       since  when  finally applied to the target data regular expres-
+	       sion to match they must meet regular expression compile	rules.
+	       (see MACROS)
+
+       macroContinuation
+	       (Default	 false)	 this  option allows a macro definition in the
+	       MACRO block or optional macro file to use line continuation via
+	       a  final	 unescaped  backslash  to improve human readability if
+	       necessary since some regular expressions can be very long.
+
+	       Since te macro file or block also supports comments, full  line
+	       comments	 can  also be used to annotation complex macro defini-
+	       tions.
+
+       regexCommentRegex
+	       (Default ^s*#) this regular expression is used to provide docu-
+	       mentation  comments  within a regular expression block, or tem-
+	       porarily comment out a regular expression for  testing.	Unlike
+	       comments anyplace else within any of the block types, the REGEX
+	       block has this configurable just in case a  regular  expression
+	       to match actual data needs to look like this pattern.
+
+       regexEndBlockRegex
+	       (Default	 ^%%) this option defines the regular expression which
+	       ends the REGEX block. It will override the default or  optional
+	       eendBlock  just	in case actual data needs a regular expression
+	       which looks like this pattern.
+
+       regexLineContinuation
+	       (Default false) this option allows a regular expression in  the
+	       REGEX  block  to	 use  line  continuation via a final unescaped
+	       backslash to improve human readability if necessary since  some
+	       regular expressions can be very long.
+
+       showToolTitle
+	       determines  if the tool title line is displayed to STDOUT. This
+	       option must be set in the OPTIONS block to take effect. Note it
+	       is  possible  to	 get a warning message about problems with the
+	       OPTIONS block ahead of the tool title.
+
+       showValidData
+	       (Default false) prints the a simple reference that a line  that
+	       is  valid. Off by default to minimize output, but useful during
+	       debugging.
+
+       useMacros (or useMacros)
+	       (Default false) disables the of macros even if they  are	 given
+	       by  the	-m command switch or the MACRO block. Might be used if
+	       only a select RULE block is called by the  command  line	 which
+	       does  not  have macros. Note if the option is off, then text in
+	       the REGEX which looked like a macro substitution will  be  left
+	       as is, and likely not match the input data.
+
+       warnDuplicates
+	       (Default	 true)	show  two  distinct  issues.  If  a value of a
+	       name=value regtex  in  the  configuration  file	is  duplicated
+	       within  the  same  rule,	 the latter value WILL be used for the
+	       testing but is not a good practice. The second case is  in  the
+	       runtime	test  of the file to be validated, similarly that file
+	       could have a name duplicated which again is not	a  good	 prac-
+	       tice.
+
+       warnExtraFields
+	       (Default	 false) this option is used with file format of delim-
+	       ited, only if the extraFieldCount is not zero. In the  case  of
+	       extra  fields,  but  less than or equal to the extraFieldCount,
+	       the user can still get a warning message	 and  still  have  the
+	       fields  before  the  extras validated per the specified regular
+	       expressions.
+
+       warnInvalidOption
+	       (Default true) alerts the user if they have the same  NAME  two
+	       or  more times in the same REGEX block. Regardless of the state
+	       of the option, the last value set will be used.
+
+       warnMacroOverRide
+	       (Default false) alerts the user if a macro defined in the marco
+	       file  (-m  file)	 is  then  redefined  in the MACRO block. This
+	       option only takes effect if set in  the	OPTIONS	 block,	 since
+	       MACROS processing is completed before RULES are parsed.
+
+       warnRegexUnused
+	       (Default true) if set, any regular expression pattern used in a
+	       Java, delimited, or custom file that was NOT used in a match is
+	       show  since  it	either indicates missing data or a typo by the
+	       user. This can be turned off for	 cases	where  the  use	 of  a
+	       name/value might be optional.
+
+       warnRuleWithoutFile
+	       (Default	 true)	this option will warn the user if a RULE block
+	       does not have a file defined. A RULE block  without  a  defined
+	       file can only be called from the command line. With this option
+	       off, a RULE block would be silently ignored.
+
+       warnUncheckedName
+	       (Default false) this option is the  mate	 to  the  warnRegexNo-
+	       tUsed,  in  this	 case  the option by default does NOT warn the
+	       user if a NAME (or variable) appears  in	 a  Java,  custom,  or
+	       nameValue format file.
+
+MACROS
+       This  section  describes	 the  way to specify and use macros. You could
+       think of the macros as variable substitutions into regular expressions,
+       however macros convey the concept of a substitution which translates to
+       a piece of code, and since the macros here become  regular  expressions
+       which  the Java complier does implement in code that name will be used.
+
+       Macros are optional. The are used a a typing short cut  for  the	 user,
+       however	they  can  also	 reduce	 the need for comments, and can save a
+       great deal of testing if previously tested macros are reused.
+
+       Macros can be defined in an external file and given  with  the  command
+       line  switch  -m	 <macroFile>. In addition or instead of the file, they
+       can be specified in a MACROS block in the configuration	file.  In  the
+       latter  case,  the  MACRO  block (if it exists) must follow the OPTIONS
+       block and precede the first RULE block. If  both	 file  and  block  are
+       given, the file is processed first, then the block values supplement or
+       override	 the  file  values  (see  OPTIONS  section  for	 some  related
+       options). The command line switch -M will show the combined macros from
+       the file and block as will be used by validate, this option may be used
+       in debugging.
+
+       The  format  to	specify a macro is the same for the file or block. The
+       typical shell style full line comment or blank line is supported. If an
+       end  of	line  comment  is  desired,  it	 must be done with the regular
+       expression flag (and its parsing then applies) as in: mymacro=(?x)regex
+       # end of line comment, Any other line is expected to be a macro defini-
+       tion with is as follows ( in regex notation):
+
+       ^\s*\w+\s*=.*$
+
+       That is a name ([a-Za-z0-1_]+) followed by an delimiter	of  an	equals
+       sign  ('='),followed by the macro value through the EOL. A simple exam-
+       ple of the file or block (less block start/end) follows:
+
+
+       # macros for project x
+       #
+
+       # age is 2 or 3 digits
+       age=\d{2,3}
+       # gender (note whitespace indent or BEFORE the equals is supported
+	 Gender	 =male|female|Male|Female
+
+       To use a macro in a regular expression, we frame	 the  macro  with  the
+       macroStartString	 and  macroEndString.  Using the two macros above in a
+       larger regular expression might look like this:
+
+       F:Smith:<age>:243:<Gender>:NJ
+
+       When validate tests a typical line from an  employee  record  file,  it
+       would apply the regular expression above with macros expanded as:
+
+       F:Smith:{2,4}:243:male|female|Male|Female:NJ
+
+       A previously defined macro can be used in a subsequently defined macro.
+
+       Every macro is complied when read, so an invalid macro  will  halt  the
+       tool  rather  than  letting  you	 have  run time problems. (also see -p
+       macros, -M).
+
+RULES
+       A configuration file must have at least one RULE block. The rule has as
+       parameter  a  rule  ID  which can be referenced by the -i switch and is
+       also used in error messages. If a file is given	on  the	 command  line
+       with  -f <file...> then that file is associated with the one RULE block
+       specified by the command line -i <id>, otherwise every  RULE  block  in
+       the file will be applied to the file(s) specified within the RULE block
+       by the file= option. If more than one file is to validated by the  same
+       block,  the  files are specified by the following syntax (whitespace is
+       optional):
+
+       file={
+	    file1
+	    file2
+       }
+
+       A RULE must specify at least one option, that of	 format=.  The	format
+       along with options will provide validate with the rules on how to parse
+       and validate the data file. (see FILE FORMATS)
+
+       Almost any option that was given in the OPTIONS block and/or internally
+       defaulted  can  be specified in the RULE block which then apply to only
+       this current block. The options sections will discuss those that	 don't
+       make sense or are silently ignored.
+
+       After the options are specified, the we have the only nested block that
+       of the REGEX (or REGEXES) which ends the rule  portion  and  begin  the
+       regular	expression  portion.   Since  the  regular  expressions are so
+       tightly coupled to the file formats they are described in that  section
+       in detail. The REGEX block ends (default %% like all other blocks) ends
+       both the REGEX and its parent RULE block.  Note two exceptions  to  the
+       RULE  block  (see  OPTIONS) it is possible that the regular expressions
+       the user wants to specified could conflict with a line starting with %%
+       or  the	standard shell like comment line, therefore in only this block
+       syntax of those two items can be altered by options.
+
+       If an end of line comment is desired, it must be done with the  regular
+       expression flag (and its parsing then applies) as in: name=(?x)576
+
+FILE FORMATS
+       Each  RULE  block  must	be  told  what type of format the data file is
+       expected to have. Below are validate's definitions, and descriptions of
+       what  this means to the validation process, and the REGEX block for the
+       given RULE.
+
+
+       java (java|properties|JavaProperities|J|P, in any case) indicates  that
+       the  data  file	is a Java properties file as specified by the Java api
+       documentation.
+		   Basically, this is a form  of  name/value  file  with  some
+		   unique  flexibilities  to  comments and variable definition
+		   syntax. For this type of file, validate uses	 the  standard
+		   Java	 methods  to load the file (thus we let Java apply the
+		   parsing rules). Then each name/value pair can be tested  by
+		   a  regular  expressions.  (see OPTIONS for various warnings
+		   available).	Below is a simple Java properties file to show
+		   some	 of  the  supported syntax, this is followed by a RULE
+		   block that can validate it.
+
+		   Note: for the java properties format, if a  property	 fails
+		   to	 be   vawidated	  (or	is   displayed	 because   the
+		   showValidDataaused) the line numbers	 in  the  output  file
+		   refer  to thesconfiguration file, not the user data file as
+		   in other cases. The name and value  of  the	property  will
+		   easily indenify the line with the problem in the data file.
+
+		   Properties File
+
+		   ! The exclamation mark can also mark text as comments.
+		   # The key and element characters $, #, !, =, and : are written with a preceding backslash to ensure that they are properly loaded.
+		   website = http//en.wikipedia.org/
+		   language = English
+		   # The backslash below tells the application to continue reading
+		   # the value onto the next line.
+		   message = Welcome to		  Wikipedia!
+		   # Add spaces to the key
+		   key with spaces = This is the value that could be looked up with the key "key with spaces".
+		   # Unicode
+		   tab : 0009
+
+
+		   Java Properties Rule Block
+
+
+		   %% RULE java_prop
+			format=javaProperties
+			file=demo.prop
+		   %% REGEX
+		   message=Welcome to.*
+		   tab=00009
+		   %%
+
+
+
+
+       NameValue (NameValue|NV|NVP, in any case) indicates that the data file is the traditional Linux formatted file. One name/value pair per line. the file may contain lines to be purposely ignored (comment) as defined by an option (see OPTIONS), the user could use this to ignore pairs as well if need be. The format of the data file is:
+
+	       ^\s*<name or variable>\s*=<value from the equals to EOL>
+
+	       Below is a simple data file followed by a possible RULE	block.
+
+
+	       # Example NameValue file
+	       #
+
+	       threads=12
+	       maxInodes=544
+	       tz=est
+
+	       # Example config file with a RULE block for the NameValue file above
+
+	       %% RULE 1
+		    file=myNameValue.txt
+		    format=NameValue
+	       #
+	       # define a lineSkipRegex for std shell comments and blanks
+	       #
+		    lineSkipRegex=^\s*#.*$|^\s*$
+		 errorReportDetails=all
+		    warnUncheckedName=true
+		    warnUnusedRegex=true
+	       %% REGEX
+		    threads=^\d{1,2}$
+		    # (?i) allows case independent match
+		    tz=(est|cst|gmt)(?i)
+	       %%
+
+
+
+       Custom	   (Custom|C,  in any case) indicates that the data file to be
+		   validated has characteristics of a name/value  file	and/or
+		   properties file as previously described, but may need other
+		   features.
+
+		   Like the aforementioned formats,  the  custom  format  does
+		   apply  regular  expressions	to name name/values, but first
+		   there are some processing to select and/or modify the lines
+		   read (the examples will show why).
+
+		   Parsing  follows  this  process  if appropriate options are
+		   set: skip over lines we want to  ignore,  trim  the	prefix
+		   (front)  of	every matching line), trim the suffix (end) of
+		   every matching  line,  apply	 regular  expressions  to  all
+		   remaining lines or only globally matched lines.
+
+		   Using  various  options  many  data files can be reduced to
+		   look like simple name/value lines (even with complex	 sepa-
+		   rators  instead of the typical '=').	 Below are a few lines
+		   from various input formats that custom can be applied to:
+
+		   export tz=gmt		   # shell
+		   path=c:\bin export		   # shell
+		   maxThreads=10;		   # shell
+		   my $age = 39;		   # perl
+		   systat    11/tcp    users	   # /etc/services
+
+		   Validate can reduce all the above to look like a name/value
+		   which  can  then  have  regular  expressions applied to the
+		   value.
+
+       Line	   (Line|Lines|L, in any case) indicates that  the  data  file
+		   will	 be  validated by testing it against a successive list
+		   of regular expressions until a match is  made  (line	 vali-
+		   dated)  or  all regular expressions are exhausted (line has
+		   failed).
+
+		   Line is the most versatile format, for checking data	 lines
+		   (even  various comment lines could be validated rather than
+		   skipped). The user has to keep a few things in mind:
+
+		   - the order of regular expressions is important from both a matching and performance view
+		     For accuracy in matching, you want specific regular expressions applied before
+		     greedy ones. For performance (if there are large data files and/large list
+		     of regular expressions) regular expressions should be ordered with the most likely match first.
+		   - as with any regular expressions remember to escape meta characters.
+
+		   If you want to limit the regular expression to a range of lines, then the regular expression line must start with the followinf format: ^%fromLine%toLine%<regular expression) where fromLine and toLine are postive integers greater or equal to zero. The sequence %0%0%, is the same as no sequnece at at, which means the given reggular expression applies to ALL lines in the file; if from Line is greater than zero, and toLine==0 then the regular expression applies from the fromLine number until end-of-file. Note that more than one regualr expression line can have teh same or overlapping ranges, they are applied in top to bottom order and stop on the first valid match.
+
+		   Below is an example of the RULE block for the line format where the user is only interested in confirming the overall contents of the file for grossly incorrect formatting (not individual data items).
+
+
+		   %% RULE 101
+			# we'll use a regular expressions for comments and blanks instead of an option
+			file=data
+			format=line
+		   %% REGEX
+		   ^\s*$
+		   ^\s*#.*$
+		   ^WHITE|RED|BLUE"
+		   ^\s+white:egg-shell|100$
+		   ^\s+while:oyster|2\d\d$
+		   ^blue:royal:333$
+		   ^blue:navy:123$
+		   ^red:brick:000$
+		   ^NOTE: .*$
+		   # below is the alternate syntax using range restricted regular expressions
+		   %0%0%^\s*$
+		   %5%10%^line 5 through 10
+		   %11%0%^ending lines of the file after line 11
+		   %%
+
+
+
+		   The above block would validate a file  as  below.  What  it
+		   would  not  do  is  know if the lines were out of order, it
+		   would not know if lines were missing or duplicated, but  it
+		   can find many format or data problems.
+
+
+		   # # input file for paint colors to be validated #
+
+		   WHITE	  white:egg-shell:100	      white:oyster:300
+		   <<	will   fail   since   300   is	 not   correct	  BLUE
+			blue:navy:123
+
+		   NOTE: special order colors take an extra 2 weeks
+
+
+       Delimited   (Delimited|D|Fields|F, in any case) indicates that the data
+		   file to be validated is in a field delimited format,	 where
+		   each	 line  has a fixed number of delimiters (see OPTIONS).
+		   The number of fields is determined by the number of regular
+		   expressions listed in the REGEX block. As above line may be
+		   skipped with the lineSkipRegex.
+
+		   Unlike the line format, each regular expressions  is	 given
+		   on  a  separate line for ease of trouble shooting (validate
+		   can at least say which field	 does  not  compile),  and  in
+		   addition  in the output (depending on options) validate can
+		   tell you which  field  did  not  match  the	given  regular
+		   expression.	This format is a excellent place to use macros
+		   to shorten the regular expressions, to allow reuse, and  to
+		   provide self documenting of the configuration file.	A sim-
+		   ple REGEX block is shown below which could be  used	as  an
+		   alternative to the line format approach.
+
+		   NOTE:  If a files data looks to be delimited, but there are
+		   inter relations between columns, then the line  format  may
+		   be a better choice to consider.
+
+
+		   %%	RULE  ABC	file=field_data	      format=delimited
+			delimiterRegex=\|	 <<  escaped since  "|"	 is  a
+		   meta	 character	errorReportDetails=all %% REGEX	     #
+		   since there are 4 non-comment lines below this,  which  are
+		   therefore
+		     #	processed  as  regular	expressions;  then there are 4
+		   fields  expected  per  line	     #	expecting  data	 like:
+		   name:age:gender:zip_code	   ^[a-zA-Z]+$	     ^\d{1,3}$
+		   ^male|female$ <ZIP> %%
+
+		   # Note: line anchors can be used since with fields, a  line
+		   is  split  into  separate pieces, this is not true in "for-
+		   mat=line".  # Note: we used a MACRO for the zipCode	assum-
+		   ing it does exist
+
+
+
+       Regular expression are very powerful, but they can be challenging to create
+	       in some cases. Rather than immediately embedding a regular expressions that the user is not sure of into the validate tool or some other Java compatible tool or source code, validate has an alternate behavior to support this effort. The command line switches of -R, -C and -T are used for this.
+
+	       The simplist approach is for the user to create a file with the very first line
+	       being the regular expressions they want to test. This line from start to end si the regular expressions, so any indenting characters or trailing will be considered part of the expression. The rest of the file are test cases or strings to attempt to match the regular expressions pattern to.
+
+	       The user can also use the -C <commentRegex> to specify a regular expressions for a comment line to make this file more self documenting, a good choice is -C "^#|^$". Using this here is a typical file:
+
+	       The -T is like "-C" but meant for timing tests of regular expressions. This will be enhanced with Java 7, for now to see the run time of a simple regular expression you will need about 100 duplications of the test cases since execution tends to be in the order of a milli second or less.
+
+	       #
+	       # REGEX: define and test a regular expression for a US zip code which we will call ZIP
+	       #
+
+	       ^{5}([. ]?{4})$
+	       #
+	       # test cases below all SHOULD pass
+	       #
+	       12345
+	       123451234
+	       12345.9876
+	       54321 2233
+	       # test below SHOULD fail
+	       1234
+	       1234 12345
+	       12345,1234
+	       A2341234
+	       # next one too long
+	       1234567890
+
+
+	       Running: validate -R testFile -C "^#|^$"
+	       will show an output like below. The matched portion of the test case is underlined with '=' and the columns of the match are also given (both for troubleshooting which is particularly if you don't use start/end anchors in your regular expression).
+
+
+	       == Test REGEX ==
+	       ^{5}([. ]?{4})?$
+
+	       == Match test(s) ==
+	       Matched: line <2> start column <0> end column <5>.
+	       12345
+	       =====
+	       Matched: line <3> start column <0> end column <9>.
+	       123451234
+	       =========
+	       Matched: line <4> start column <0> end column <10>.
+	       12345.9876
+	       ==========
+	       Matched: line <5> start column <0> end column <10>.
+	       54321 2233
+	       ==========
+	       No match: line <6>.
+	       1234
+
+	       No match: line <7>.
+	       1234 12345
+	       You can also use -p regex for help with regular expression syn-
+	       tax. Its usually beneficial to build up your regular expression
+	       incrementally  with  appropriate	 testing rather than attempt a
+	       complex regular expression in one piece.
+
+
+       MISC   In many output messages,	data  items  such  as  NAMES,  VALUES,
+	      REGEXES, input lines will be shown within angle brackets such as
+	      VALUE <hello >, this is done so that whitespace values  are  not
+	      hidden  from the user. If you should see a bracket doubled as in
+	      VALUE <<some thing>>, then the inner ones are part of the	 data.
+
+	      If  you  see output with touching angle brackets as in VALUE <>,
+	      then the value was null. In some cases, you could see whitespace
+	      separated	 angle	brackets,  you	will need to use an Linux tool
+	      such as "vi", "od" to see what is inside. Note  that  a  regular
+	      expression  like	\s can match several characters, if it makes a
+	      difference to your validation you may  want  to  use  the	 ascii
+	      escape	sequence   such	  as   "Hello\012World"	  instead   of
+	      "Hello\sWorld".
+
+	      Parsing order of input file: the use of several several  of  the
+	      regex  options  can can greatly reduce the lines that eventually
+	      get to the logic which is tested by the regular  expressions  in
+	      the  REGEX  block. Use the minimal options needed for both effi-
+	      ciency and reduced trouble shooting. The following process  flow
+	      applies to all formats except java. Options apply as noted:
+
+		   1 - data line is read
+		   2 - fileLineContinuation (makes one line from many)
+		   3 - skipLineRegex (match skips line and get new input)
+		4 - lineReplaceRegex (modify input to simplify down stream regexes)
+		5 - linePrefixRegex and/or lineSuffixRegex (trims prefix/suffix from
+		    input)
+		6 - lineCheckRegex (if match continue on, last chance to ignore input)
+		7 - showLine (see what made it this far - for debugging)
+		8 - apply regexes per the REGEX block (note this is where the delimiter regex
+		    is used for custom and nameValue, make sure prior steps did not clobber
+		    expected data).
+		9 - showValidData (display MATCHES that pass, for debugging)
+	       10 - display failures per errorReportData
+
+
+	      Regex Tips
+
+		1 - be careful with greedy matchers like * and +, try to use reluctant
+		    quantifiers
+		2 - a pipe '|' at the start or end of a regex matches zero width characters,
+		    its not likely you want that
+		3 - use non-capturing groups for efficiency
+		4 - use back references in groups to avoid retyping mistakes
+		5 - test well. Negative cases, as well as matches
