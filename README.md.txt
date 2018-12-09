@@ -1,17 +1,16 @@
 A FEW DISCLAIMERS AND JUSTIFICATIONS
 ====================================
 
-I've always like regular expressions (regexes) and used them extensively with grep, awk, lex, perl, and C. I was surprised when I saw that many
+Regular expressions (regexes) are used them extensively with grep, awk, lex, perl, C and Java. I was surprised when I saw that many
 very skilled developers didn't seem as well versed in their use as I had expected. A second observation in recent years was that though 
-some of code was widely used, and very stable, there would be random production bugs - after investigation a fair number of times it was found that the code was fine,
-but that some piece of "configuration data" was the problem. That is, a name value pair like: TIMEZONE=GNT instead of GMT, or row and column data file that 
+some of their code was widely used, and very stable, there would be random production bugs - after investigation a fair number of times it was found that the code was fine, but that some piece of "configuration data" was the problem. 
+
+That is, a name value pair like: TIMEZONE=GNT instead of GMT, or row and column data file that 
 was used by an install utility to preload a database table, had a problem (bad data in a field, to many or too few fields, etc.)
 
-So this tool is an attempt to provide a reasonable solution to both of the above.
+So this tool provides a reasonable solution to both of the above.
 
-I tried to provide a lot of flexibility in the formatting of the files that the tool uses. They were to accomodate many of the complaints come across in
-tools in the past; and in some cases to simplify or at least not cause conflicts with the parsing of regular expressions. In short, in many cases your initial
-thought might be "why didn't he just use XXX as in Java or C?" or "who cares if a block is called "OPTIONS, or options, or OpTionS", they were all intentional.
+I tried to provide a lot of flexibility in the formatting of the files that the tool uses. They were to accomodate many of the complaints come across in tools in the past; and in some cases to simplify or at least not cause conflicts with the parsing of regular expressions. In short, in many cases your initial thought might be "why didn't he just use XXX as in Java or C?" or "who cares if a block is called "OPTIONS, or options, or OpTionS", they were all intentional.
 
 Also I tried to pick defaults for almost everything, but leave it to the user to override them or even explicitly restate them as means of self ddocumentation.
 
@@ -26,16 +25,14 @@ CONTENT
 This file contains some high level descriptions that may be useful to those that may want
 to enhance the validate tool.
 
-To try or use the tool and understand its capabilities and hopefully benefits read the manpage. I deviated from the more cryptic manpage style and
-added examples to the manpage rather than having a separate tutorial document, which would likely get separated from the source code.
+To try or use the tool and understand its capabilities and hopefully benefits read the manpage. I deviated from the more cryptic manpage style andadded examples to the manpage rather than having a separate tutorial document, which would likely get separated from the source code.
 
 
 All testing has been with java 1.6 and 1.7, in both linux and Windows - absolutely needs at least java 1.5.
 
 There are many comments in the code, as well as some preamble text in source files.
 
-For users executing the tool, there are a few options that write useful data to stdout. For example a dump of Java supported regexes so you don't have to use a book
-or javadoc, a full list of options that may be specified in the OPTIONS block, etc.
+For users executing the tool, there are a few options that write useful data to stdout. For example a dump of Java supported regexes so you don't have to use a book or javadoc, a full list of options that may be specified in the OPTIONS block, etc.
 
 
 FILES
